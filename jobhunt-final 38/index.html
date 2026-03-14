@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Hunt</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Epilogue:wght@300;400;500;600&display=swap" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Epilogue', sans-serif; background: #fafaf8; color: #1a1a1a; min-height: 100vh; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 56px; height: 68px; background: #fff; border-bottom: 1px solid #e8e6e1; position: sticky; top: 0; z-index: 100; }
+    .logo { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 22px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #1a1a1a; text-decoration: none; }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: #f0a500; display: inline-block; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-btn { background: transparent; color: #8a8780; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-family: 'Epilogue', sans-serif; font-weight: 500; font-size: 14px; transition: all 0.15s; }
+    .nav-btn.active { background: #1a1a1a; color: #fff; }
+    .nav-btn:hover:not(.active) { color: #1a1a1a; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; border: none; background: transparent; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: #1a1a1a; border-radius: 2px; transition: all 0.2s; }
+    .mobile-nav { display: none; position: fixed; top: 68px; left: 0; right: 0; background: #fff; border-bottom: 1px solid #e8e6e1; z-index: 99; padding: 12px 20px; flex-direction: column; gap: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav .nav-btn { text-align: left; padding: 12px 16px; font-size: 15px; border-radius: 8px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .hero { padding: 88px 56px 72px; max-width: 1100px; margin: 0 auto; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(52px, 6vw, 78px); font-weight: 900; line-height: 1.05; letter-spacing: -2px; margin-bottom: 24px; }
+    h1 span { color: #b8b5ae; }
+    .hero-sub { font-size: 17px; color: #8a8780; max-width: 500px; line-height: 1.65; margin-bottom: 44px; }
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn-primary { background: #1a1a1a; color: #fff; border: none; padding: 14px 32px; border-radius: 8px; font-family: 'Epilogue', sans-serif; font-weight: 600; font-size: 15px; cursor: pointer; }
+    .btn-secondary { background: #fff; color: #1a1a1a; border: 1px solid #e8e6e1; padding: 14px 32px; border-radius: 8px; font-family: 'Epilogue', sans-serif; font-weight: 500; font-size: 15px; cursor: pointer; }
+
+    .stats-band { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid #e8e6e1; border-bottom: 1px solid #e8e6e1; background: #fff; }
+    .stat-cell { padding: 28px 32px; border-right: 1px solid #e8e6e1; }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num { font-family: 'Playfair Display', serif; font-size: 38px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 11px; color: #b8b5ae; margin-top: 6px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+
+    .steps-section { padding: 72px 56px; max-width: 1100px; margin: 0 auto; }
+    .section-label { font-size: 11px; font-weight: 600; color: #b8b5ae; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 40px; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #e8e6e1; border: 1px solid #e8e6e1; border-radius: 12px; overflow: hidden; }
+    .step-card { background: #fff; padding: 40px 36px; }
+    .step-num { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 700; color: #e8e6e1; line-height: 1; margin-bottom: 20px; }
+    .step-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .step-desc { font-size: 14px; color: #8a8780; line-height: 1.65; }
+
+    .page-section { padding: 56px; max-width: 1100px; margin: 0 auto; }
+    .page-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .page-subtitle { font-size: 14px; color: #8a8780; margin-bottom: 40px; }
+
+    .card { background: #fff; border: 1px solid #e8e6e1; border-radius: 12px; padding: 28px; }
+    .card-label { font-size: 11px; font-weight: 600; color: #b8b5ae; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    input[type=text], textarea, select { width: 100%; background: #fafaf8; border: 1px solid #e8e6e1; border-radius: 8px; color: #1a1a1a; font-family: 'Epilogue', sans-serif; font-size: 14px; padding: 11px 16px; outline: none; box-sizing: border-box; }
+    input[type=text] { font-weight: 500; margin-bottom: 12px; }
+    textarea { line-height: 1.7; resize: vertical; min-height: 180px; }
+    select { cursor: pointer; font-size: 12px; padding: 6px 10px; }
+    .big-btn { width: 100%; background: #1a1a1a; color: #fff; border: none; padding: 15px; border-radius: 8px; font-family: 'Epilogue', sans-serif; font-weight: 600; font-size: 15px; cursor: pointer; margin-top: 16px; transition: all 0.15s; }
+    .big-btn:disabled { background: #f4f3f0; color: #b8b5ae; cursor: not-allowed; }
+    .warning-box { margin-top: 12px; padding: 10px 14px; background: #fff8e7; border: 1px solid #f0c06040; border-radius: 6px; font-size: 12px; color: #b7791f; font-weight: 500; }
+
+    .upload-box { border: 2px dashed #d4d1ca; border-radius: 10px; padding: 44px 24px; text-align: center; cursor: pointer; background: #fafaf8; transition: all 0.2s; }
+    .upload-box.has-file { border-color: #1a1a1a; background: #f8f8f8; }
+    .upload-icon { font-size: 28px; margin-bottom: 10px; color: #8a8780; }
+    .upload-text { font-size: 13px; color: #8a8780; }
+    .upload-text.has-file { color: #1a1a1a; font-weight: 500; }
+
+    .status-summary { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
+    .summary-chip { padding: 10px 18px; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
+    .summary-num { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 24px; line-height: 1; }
+    .summary-label { font-size: 11px; color: #8a8780; font-weight: 500; }
+    .tracker-header { display: grid; grid-template-columns: 1fr 140px 120px 130px 90px; padding: 10px 20px; gap: 12px; margin-bottom: 4px; }
+    .header-cell { font-size: 10px; font-weight: 600; color: #b8b5ae; letter-spacing: 1.5px; text-transform: uppercase; }
+    .job-row { display: grid; grid-template-columns: 1fr 140px 120px 130px 90px; align-items: center; padding: 16px 20px; background: #fff; border: 1px solid #e8e6e1; border-radius: 8px; gap: 12px; margin-bottom: 4px; }
+    .job-title-text { font-weight: 600; font-size: 15px; }
+    .job-co { font-size: 12px; color: #8a8780; margin-top: 2px; }
+    .status-pill { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .del-btn { background: transparent; border: 1px solid #e8e6e1; color: #8a8780; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'Epilogue', sans-serif; }
+
+    .tab-row { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab-btn { padding: 8px 18px; background: transparent; color: #8a8780; border: 1px solid #e8e6e1; border-radius: 6px; cursor: pointer; font-family: 'Epilogue', sans-serif; font-size: 13px; font-weight: 500; }
+    .tab-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .output-box { background: #fafaf8; border: 1px solid #e8e6e1; border-radius: 8px; padding: 24px 28px; font-size: 13.5px; line-height: 1.85; max-height: 520px; overflow-y: auto; font-family: 'Epilogue', sans-serif; color: #1a1a1a; }
+    .output-box h1, .output-box h2, .output-box h3 { font-family: 'Playfair Display', serif; margin: 18px 0 6px; color: #1a1a1a; }
+    .output-box h1 { font-size: 20px; font-weight: 700; border-bottom: 2px solid #e8e6e1; padding-bottom: 8px; margin-top: 0; }
+    .output-box h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8a8780; margin-top: 20px; }
+    .output-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .output-box p { margin: 4px 0 10px; }
+    .output-box ul { padding-left: 18px; margin: 4px 0 10px; }
+    .output-box li { margin-bottom: 4px; }
+    .output-box strong { font-weight: 600; }
+    .output-box hr { border: none; border-top: 1px solid #e8e6e1; margin: 16px 0; }
+    .copy-btn { margin-top: 12px; background: transparent; border: 1px solid #e8e6e1; color: #8a8780; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'Epilogue', sans-serif; transition: all 0.2s; }
+    .copy-btn.success { background: #276749; border-color: #276749; color: #fff; }
+    .empty-state { text-align: center; padding: 56px 0; color: #b8b5ae; font-size: 14px; }
+    .loading-state { text-align: center; padding: 48px 24px; color: #1a1a1a; font-size: 14px; font-weight: 500; }
+    .loading-dots { display: inline-flex; gap: 6px; margin-top: 16px; }
+    .loading-dots span { width: 8px; height: 8px; border-radius: 50%; background: #f0a500; animation: bounce 1.2s infinite ease-in-out; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+    .cv-paste-display { background: #fafaf8; border: 1px solid #e8e6e1; border-radius: 8px; padding: 20px 24px; font-size: 13px; line-height: 1.8; max-height: 220px; overflow-y: auto; font-family: 'Epilogue', sans-serif; color: #1a1a1a; display: none; }
+    .cv-paste-display p { margin: 0 0 6px; }
+    .cv-paste-display strong { font-weight: 600; }
+    .job-card { background:#fff; border:1px solid #e8e6e1; border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px; transition: box-shadow 0.2s; }
+    .job-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .job-card-title { font-family:'Playfair Display',serif; font-size:16px; font-weight:600; color:#1a1a1a; }
+    .job-card-company { font-size:13px; color:#5a5855; font-family:'Epilogue',sans-serif; }
+    .job-card-meta { font-size:12px; color:#8a8780; font-family:'Epilogue',sans-serif; display:flex; gap:12px; flex-wrap:wrap; }
+    .job-card-desc { font-size:13px; color:#5a5855; font-family:'Epilogue',sans-serif; line-height:1.6; }
+    .source-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:4px; font-family:'Epilogue',sans-serif; font-weight:600; }
+    .source-adzuna { background:#e8f4fd; color:#2b6cb0; }
+    .job-card-actions { display:flex; gap:8px; margin-top:4px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+
+      .hero { padding: 40px 20px 48px; }
+      h1 { font-size: 42px; letter-spacing: -1px; }
+      .hero-sub { font-size: 15px; }
+      .cta-row { flex-direction: column; }
+      .btn-primary, .btn-secondary { width: 100%; text-align: center; }
+
+      .stats-band { grid-template-columns: repeat(3, 1fr); }
+      .stat-cell { padding: 16px 12px; }
+      .stat-num { font-size: 26px; }
+      .stat-label { font-size: 9px; }
+
+      .steps-section { padding: 40px 20px; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .step-card { padding: 28px 24px; }
+
+      .page-section { padding: 28px 20px; }
+      .page-title { font-size: 26px; }
+      .two-col { grid-template-columns: 1fr; }
+
+      .status-summary { gap: 6px; }
+      .summary-chip { padding: 8px 12px; }
+      .summary-num { font-size: 18px; }
+
+      .tracker-header { display: none; }
+      .job-row { grid-template-columns: 1fr; gap: 8px; padding: 16px; }
+      .job-row > * { width: 100%; }
+      select { font-size: 14px; padding: 8px 12px; }
+
+      .output-box { max-height: 360px; padding: 16px 18px; }
+
+      #jobs-grid { grid-template-columns: 1fr !important; }
+      .job-card-actions { flex-direction: column; }
+      .job-card-actions a, .job-card-actions button { width: 100%; text-align: center; box-sizing: border-box; }
+
+      .tab-row { gap: 6px; }
+      .tab-btn { padding: 8px 12px; font-size: 12px; }
+    }
+
+    /* AUTH */
+    #auth-screen { display:none; position:fixed; inset:0; background:#fafaf8; z-index:1000; align-items:center; justify-content:center; }
+    #auth-screen.visible { display:flex; }
+    .auth-box { background:#fff; border:1px solid #e8e6e1; border-radius:16px; padding:48px 40px; width:100%; max-width:420px; margin:20px; }
+    .auth-logo { font-family:'Playfair Display',serif; font-weight:900; font-size:24px; display:flex; align-items:center; gap:8px; margin-bottom:32px; }
+    .auth-title { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; margin-bottom:8px; }
+    .auth-sub { font-size:14px; color:#8a8780; margin-bottom:32px; line-height:1.5; }
+    .auth-input { width:100%; background:#fafaf8; border:1px solid #e8e6e1; border-radius:8px; color:#1a1a1a; font-family:'Epilogue',sans-serif; font-size:14px; padding:12px 16px; outline:none; box-sizing:border-box; margin-bottom:12px; }
+    .auth-input:focus { border-color:#1a1a1a; }
+    .auth-btn { width:100%; background:#1a1a1a; color:#fff; border:none; padding:14px; border-radius:8px; font-family:'Epilogue',sans-serif; font-weight:600; font-size:15px; cursor:pointer; margin-top:4px; transition:opacity 0.2s; }
+    .auth-btn:hover { opacity:0.85; }
+    .auth-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .auth-switch { text-align:center; margin-top:20px; font-size:13px; color:#8a8780; }
+    .auth-switch a { color:#1a1a1a; font-weight:600; cursor:pointer; text-decoration:none; }
+    .auth-error { background:#fff5f5; border:1px solid #e53e3e40; color:#c53030; padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; display:none; }
+    .auth-success { background:#f0fff4; border:1px solid #27674940; color:#276749; padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; display:none; }
+    .nav-user { display:flex; align-items:center; gap:12px; }
+    .nav-email { font-size:13px; color:#8a8780; font-family:'Epilogue',sans-serif; }
+    .nav-signout { background:transparent; border:1px solid #e8e6e1; color:#8a8780; padding:6px 14px; border-radius:6px; cursor:pointer; font-family:'Epilogue',sans-serif; font-size:13px; }
+    .nav-signout:hover { border-color:#1a1a1a; color:#1a1a1a; }
+    @media(max-width:768px) { .auth-box { padding:32px 24px; } .nav-email { display:none; } }
+  </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="visible">
+  <div class="auth-box">
+    <div class="auth-logo"><span class="logo-dot"></span>Job Hunt</div>
+    <div id="auth-login-view">
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-sub">Sign in to access your CV, applications and tailor history.</p>
+      <div class="auth-error" id="login-error"></div>
+      <input class="auth-input" type="email" id="login-email" placeholder="Email address" />
+      <input class="auth-input" type="password" id="login-password" placeholder="Password" />
+      <button class="auth-btn" id="login-btn" onclick="signIn()">Sign in</button>
+      <p class="auth-switch">Don't have an account? <a onclick="showAuthView('signup')">Create one</a></p>
+      <p class="auth-switch" style="margin-top:8px"><a onclick="resendConfirmation()">Resend confirmation email</a></p>
+    </div>
+    <div id="auth-signup-view" style="display:none">
+      <h2 class="auth-title">Create account</h2>
+      <p class="auth-sub">Free to start. Your CV and applications saved forever.</p>
+      <div class="auth-error" id="signup-error"></div>
+      <div class="auth-success" id="signup-success"></div>
+      <input class="auth-input" type="email" id="signup-email" placeholder="Email address" />
+      <input class="auth-input" type="password" id="signup-password" placeholder="Password (min 6 characters)" />
+      <button class="auth-btn" id="signup-btn" onclick="signUp()">Create account</button>
+      <p class="auth-switch">Already have an account? <a onclick="showAuthView('login')">Sign in</a></p>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <span class="logo" onclick="showPage('home'); closeMobileNav()">
+    <span class="logo-dot"></span>Job Hunt
+  </span>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('home')" id="nav-home">Home</button>
+    <button class="nav-btn" onclick="showPage('tracker')" id="nav-tracker">Tracker</button>
+    <button class="nav-btn" onclick="showPage('cv')" id="nav-cv">My CV</button>
+    <button class="nav-btn" onclick="showPage('tailor')" id="nav-tailor">AI Tailor</button>
+    <button class="nav-btn" onclick="showPage('jobs')" id="nav-jobs">Jobs</button>
+  </div>
+  <div class="nav-user">
+    <span class="nav-email" id="nav-email"></span>
+    <button class="nav-signout" onclick="signOut()">Sign out</button>
+  </div>
+  <button class="hamburger" onclick="toggleMobileNav()" id="hamburger-btn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-nav" id="mobile-nav">
+  <button class="nav-btn active" onclick="showPage('home'); closeMobileNav()" id="mnav-home">Home</button>
+  <button class="nav-btn" onclick="showPage('tracker'); closeMobileNav()" id="mnav-tracker">Tracker</button>
+  <button class="nav-btn" onclick="showPage('cv'); closeMobileNav()" id="mnav-cv">My CV</button>
+  <button class="nav-btn" onclick="showPage('tailor'); closeMobileNav()" id="mnav-tailor">AI Tailor</button>
+  <button class="nav-btn" onclick="showPage('jobs'); closeMobileNav()" id="mnav-jobs">Jobs</button>
+  <button class="nav-signout" style="margin-top:8px" onclick="signOut()">Sign out</button>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h1>Your job hunt,<br><span>sorted.</span></h1>
+    <p class="hero-sub">Upload your CV once. Paste any job description. Get a perfectly tailored CV and cover letter in seconds — then track every application in one place.</p>
+    <div class="cta-row">
+      <button class="btn-primary" onclick="showPage('tailor')">Tailor my CV →</button>
+      <button class="btn-secondary" onclick="showPage('tracker')">View applications</button>
+    </div>
+  </div>
+  <div class="stats-band">
+    <div class="stat-cell"><div class="stat-num" id="stat-total" style="color:#1a1a1a">0</div><div class="stat-label">Total</div></div>
+    <div class="stat-cell"><div class="stat-num" id="stat-applied" style="color:#2b6cb0">0</div><div class="stat-label">Applied</div></div>
+    <div class="stat-cell"><div class="stat-num" id="stat-interview" style="color:#b7791f">0</div><div class="stat-label">Interviews</div></div>
+    <div class="stat-cell"><div class="stat-num" id="stat-accepted" style="color:#276749">0</div><div class="stat-label">Accepted</div></div>
+    <div class="stat-cell"><div class="stat-num" id="stat-rejected" style="color:#e53e3e">0</div><div class="stat-label">Rejected</div></div>
+  </div>
+  <div class="steps-section">
+    <p class="section-label">How it works</p>
+    <div class="steps-grid">
+      <div class="step-card"><div class="step-num">01</div><div class="step-title">Upload your CV</div><p class="step-desc">Drop in your PDF, .docx, or paste your CV as text. Stored for every future application.</p></div>
+      <div class="step-card"><div class="step-num">02</div><div class="step-title">Paste the job description</div><p class="step-desc">Copy any posting from LinkedIn, Indeed, or anywhere else and paste it in.</p></div>
+      <div class="step-card"><div class="step-num">03</div><div class="step-title">Get tailored instantly</div><p class="step-desc">AI rewrites your CV to match the role and writes a cover letter. Track every application in one place.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKER -->
+<div class="page" id="page-tracker">
+  <div class="page-section">
+    <h2 class="page-title">Applications</h2>
+    <p class="page-subtitle">Track every role from first draft to final answer.</p>
+    <div class="status-summary">
+      <div class="summary-chip" style="background:#ebf4ff;border:1px solid #2b6cb040"><span class="summary-num" style="color:#2b6cb0" id="chip-applied">0</span><span class="summary-label">Applied</span></div>
+      <div class="summary-chip" style="background:#fffbeb;border:1px solid #b7791f40"><span class="summary-num" style="color:#b7791f" id="chip-interview">0</span><span class="summary-label">Interview</span></div>
+      <div class="summary-chip" style="background:#f0fff4;border:1px solid #27674940"><span class="summary-num" style="color:#276749" id="chip-accepted">0</span><span class="summary-label">Accepted</span></div>
+      <div class="summary-chip" style="background:#fff5f5;border:1px solid #e53e3e40"><span class="summary-num" style="color:#e53e3e" id="chip-rejected">0</span><span class="summary-label">Rejected</span></div>
+      <div class="summary-chip" style="background:#f4f3f0;border:1px solid #8a878040"><span class="summary-num" style="color:#8a8780" id="chip-draft">0</span><span class="summary-label">Draft</span></div>
+    </div>
+    <div class="tracker-header">
+      <div class="header-cell">Role</div>
+      <div class="header-cell">Date Added</div>
+      <div class="header-cell">Status</div>
+      <div class="header-cell">Update Status</div>
+      <div class="header-cell"></div>
+    </div>
+    <div id="jobs-list"></div>
+  </div>
+</div>
+
+<!-- MY CV -->
+<div class="page" id="page-cv">
+  <div class="page-section">
+    <h2 class="page-title">My CV</h2>
+    <p class="page-subtitle">Upload once, use for every application.</p>
+    <div id="cv-added-banner" style="display:none;align-items:center;gap:10px;background:#f0fff4;border:1px solid #276749;border-radius:8px;padding:12px 18px;margin-bottom:20px;font-family:'Epilogue',sans-serif;font-size:14px;color:#276749;">
+      <span style="font-size:18px;">✓</span>
+      <strong>CV saved successfully!</strong> You can now go to AI Tailor to tailor it for any role.
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <p class="card-label">Upload File</p>
+        <div class="upload-box" id="upload-box" onclick="document.getElementById('cv-file').click()">
+          <div class="upload-icon" id="upload-icon">↑</div>
+          <div class="upload-text" id="upload-text">Click to upload your CV</div>
+          <div style="font-size:12px;color:#aaa;margin-top:6px;">PDF, Word (.docx) or .txt</div>
+        </div>
+        <input type="file" id="cv-file" accept=".pdf,.docx,.txt" style="display:none" onchange="handleFile(event)" />
+      </div>
+      <div class="card">
+        <p class="card-label">Or type / paste your CV</p>
+        <textarea id="cv-text" placeholder="Paste or type your CV here..." style="min-height:190px" oninput="handleCVTextInput(this.value)"></textarea>
+        <div id="cv-paste-preview" class="cv-paste-display"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAILOR -->
+<div class="page" id="page-tailor">
+  <div class="page-section">
+    <h2 class="page-title">AI CV Tailor</h2>
+    <p class="page-subtitle">Paste a job description and get a tailored CV and cover letter in seconds.</p>
+    <div class="two-col">
+      <div class="card">
+        <p class="card-label">Job Details</p>
+        <input type="text" id="job-title" placeholder="Job title (e.g. Product Manager)" />
+        <input type="text" id="job-company" placeholder="Company name" />
+        <p class="card-label" style="margin-top:8px">Job Description</p>
+        <textarea id="job-desc" placeholder="Paste the full job description here..."></textarea>
+        <div id="cv-warning" class="warning-box" style="display:none">↑ Go to My CV first and upload or paste your CV</div>
+        <button class="big-btn" id="tailor-btn" onclick="tailorCV()">Tailor my CV →</button>
+      </div>
+      <div class="card">
+        <div class="tab-row">
+          <button class="tab-btn active" id="tab-cv" onclick="switchTab('cv')">Tailored CV</button>
+          <button class="tab-btn" id="tab-cover" onclick="switchTab('cover')">Cover Letter</button>
+        </div>
+        <div id="tailor-empty" class="empty-state">Your tailored CV will appear here.</div>
+        <div id="tailor-loading" class="loading-state" style="display:none">
+          <div style="font-size:22px;margin-bottom:12px;">✦</div>
+          Tailoring your CV to this role…
+          <div class="loading-dots"><span></span><span></span><span></span></div>
+          <div style="font-size:12px;color:#8a8780;margin-top:12px;">This takes 15–30 seconds</div>
+        </div>
+        <div id="tailor-cv-output" style="display:none">
+          <div class="output-box" id="cv-output-text"></div>
+          <button class="copy-btn" id="copy-cv-btn" onclick="copyText('cv')">Copy to clipboard</button>
+        </div>
+        <div id="tailor-cover-output" style="display:none">
+          <div class="output-box" id="cover-output-text"></div>
+          <button class="copy-btn" id="copy-cover-btn" onclick="copyText('cover')">Copy to clipboard</button>
+        </div>
+        <div id="applied-action" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #e8e6e1;">
+          <button class="btn-primary" id="mark-applied-btn" onclick="markAsApplied()" style="font-size:14px; padding:10px 22px;">✓ Mark as Applied</button>
+          <span id="applied-confirm" style="display:none; margin-left:12px; color:#276749; font-size:13px; font-family:'Epilogue',sans-serif;">Added to tracker as Applied!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div class="page" id="page-jobs">
+  <div class="page-section">
+    <h2 class="page-title">Jobs For You</h2>
+    <p class="page-subtitle">Search thousands of live jobs or let AI match roles to your CV.</p>
+    <div style="margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <input id="jobs-search" type="text" placeholder="e.g. Data Analyst, London" style="flex:1;min-width:200px;padding:10px 14px;border:1px solid #e8e6e1;border-radius:8px;font-family:'Epilogue',sans-serif;font-size:14px;background:#fff;" />
+      <button class="btn-primary" onclick="searchJobs()" style="padding:10px 22px;font-size:14px;">Search Jobs</button>
+      <button class="btn-secondary" onclick="searchFromCV()" style="padding:10px 22px;font-size:14px;">Match to my CV</button>
+      <button class="btn-secondary" id="match-tailored-btn" onclick="searchFromTailored()" style="padding:10px 22px;font-size:14px;display:none;">✦ Match to tailored CV</button>
+    </div>
+    <div id="jobs-loading" style="display:none;text-align:center;padding:40px;color:#8a8780;font-family:'Epilogue',sans-serif;">Searching for jobs...</div>
+    <div id="jobs-empty" style="text-align:center;padding:40px;color:#8a8780;font-family:'Epilogue',sans-serif;">Upload your CV or search above to find matching jobs.</div>
+    <div id="jobs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
+<script>
+  // ── Supabase setup ──────────────────────────────────────────────
+  const SUPA_URL = 'https://gdfgbcwzrqjnmrbhzhxd.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkZmdiY3d6cnFqbm1yYmh6aHhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMzQ3MzUsImV4cCI6MjA4ODkxMDczNX0.kkWXfiaIfi4KVwdCo2TeF3BmDUsXZBaVLA4E0eYRTV0';
+  const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  // ── State ────────────────────────────────────────────────────────
+  let cvData = '';
+  let cvFileName = '';
+  let tailoredCV = '';
+  let tailoredCover = '';
+  let jobs = [];
+  let nextId = 1;
+  let currentUser = null;
+
+  const STATUS_STYLES = {
+    Draft:     { color: '#8a8780', bg: '#f4f3f0' },
+    Applied:   { color: '#2b6cb0', bg: '#ebf4ff' },
+    Interview: { color: '#b7791f', bg: '#fffbeb' },
+    Accepted:  { color: '#276749', bg: '#f0fff4' },
+    Rejected:  { color: '#e53e3e', bg: '#fff5f5' },
+  };
+
+  // ── Auth ─────────────────────────────────────────────────────────
+  function showAuthView(view) {
+    document.getElementById('auth-login-view').style.display = view === 'login' ? 'block' : 'none';
+    document.getElementById('auth-signup-view').style.display = view === 'signup' ? 'block' : 'none';
+  }
+
+  async function resendConfirmation() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) { alert('Enter your email address first.'); return; }
+    const { error } = await sb.auth.resend({ type: 'signup', email });
+    if (error) alert('Error: ' + error.message);
+    else alert('Confirmation email sent! Check your inbox.');
+  }
+
+  async function signIn() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+    if (!email || !password) {
+      errEl.textContent = 'Please enter your email and password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      let msg = error.message;
+      if (msg.includes('Invalid login')) msg = 'Wrong email or password. Please try again.';
+      if (msg.includes('Email not confirmed')) msg = 'Please confirm your email first, or ask to resend the confirmation.';
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+  }
+
+  async function signUp() {
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const errEl = document.getElementById('signup-error');
+    const sucEl = document.getElementById('signup-success');
+    const btn = document.getElementById('signup-btn');
+    errEl.style.display = 'none'; sucEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Creating account...';
+    const { error } = await sb.auth.signUp({ email, password });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Create account';
+    } else {
+      sucEl.textContent = 'Account created! Check your email to confirm, then sign in.';
+      sucEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Create account';
+    }
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    currentUser = null;
+    jobs = [];
+    cvData = '';
+    document.getElementById('auth-screen').classList.add('visible');
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').style.display = 'none';
+    showAuthView('login');
+  }
+
+  // ── Session listener ──────────────────────────────────────────────
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      currentUser = session.user;
+      document.getElementById('auth-screen').classList.remove('visible');
+      document.getElementById('nav-email').textContent = session.user.email;
+      loadUserData();
+    } else {
+      currentUser = null;
+      document.getElementById('auth-screen').classList.add('visible');
+    }
+  });
+
+  // Also explicitly check session on load in case onAuthStateChange doesn't fire
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      currentUser = session.user;
+      document.getElementById('auth-screen').classList.remove('visible');
+      document.getElementById('nav-email').textContent = session.user.email;
+      loadUserData();
+    }
+  });
+
+  // ── Load data from Supabase ───────────────────────────────────────
+  async function loadUserData() {
+    // Load CV
+    const { data: cvRows } = await sb.from('cvs').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(1);
+    if (cvRows && cvRows.length > 0) {
+      cvData = cvRows[0].cv_text;
+      cvFileName = cvRows[0].file_name || 'Saved CV';
+      document.getElementById('cv-text').value = cvData;
+      document.getElementById('upload-icon').textContent = '✓';
+      document.getElementById('upload-text').textContent = cvFileName;
+      document.getElementById('upload-text').classList.add('has-file');
+      document.getElementById('upload-box').classList.add('has-file');
+      showCVPreview(cvData);
+    }
+    // Load applications
+    const { data: appRows } = await sb.from('applications').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (appRows) {
+      jobs = appRows.map(r => ({ id: r.id, title: r.title, company: r.company, status: r.status, date: r.date, tailored: r.tailored, dbId: r.id }));
+      nextId = jobs.length + 1;
+    }
+    updateStats();
+    renderJobs();
+  }
+
+  // ── Save CV to Supabase ───────────────────────────────────────────
+  async function saveCVToSupabase(text, fileName) {
+    if (!currentUser) return;
+    const { error: delErr } = await sb.from('cvs').delete().eq('user_id', currentUser.id);
+    if (delErr) console.error('CV delete error:', delErr);
+    const { error: insErr } = await sb.from('cvs').insert({ user_id: currentUser.id, cv_text: text, file_name: fileName });
+    if (insErr) console.error('CV insert error:', insErr);
+    else console.log('CV saved to Supabase ✓');
+  }
+
+  // ── Save application to Supabase ──────────────────────────────────
+  async function saveApplicationToSupabase(job) {
+    if (!currentUser) return null;
+    const { data } = await sb.from('applications').insert({
+      user_id: currentUser.id,
+      title: job.title,
+      company: job.company,
+      status: job.status,
+      date: job.date,
+      tailored: job.tailored
+    }).select().single();
+    return data?.id;
+  }
+
+  async function updateApplicationInSupabase(dbId, status) {
+    if (!currentUser || !dbId) return;
+    await sb.from('applications').update({ status }).eq('id', dbId);
+  }
+
+  async function deleteApplicationFromSupabase(dbId) {
+    if (!currentUser || !dbId) return;
+    await sb.from('applications').delete().eq('id', dbId);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────
+  function toggleMobileNav() {
+    document.getElementById('mobile-nav').classList.toggle('open');
+  }
+  function closeMobileNav() {
+    document.getElementById('mobile-nav').classList.remove('open');
+  }
+
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+    const mnav = document.getElementById('mnav-' + name);
+    if (mnav) mnav.classList.add('active');
+    if (name === 'tracker') renderJobs();
+    if (name === 'home') updateStats();
+    if (name === 'tailor') checkWarnings();
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('stat-total').textContent = jobs.length;
+    document.getElementById('stat-applied').textContent = jobs.filter(j => j.status === 'Applied').length;
+    document.getElementById('stat-interview').textContent = jobs.filter(j => j.status === 'Interview').length;
+    document.getElementById('stat-accepted').textContent = jobs.filter(j => j.status === 'Accepted').length;
+    document.getElementById('stat-rejected').textContent = jobs.filter(j => j.status === 'Rejected').length;
+    document.getElementById('chip-applied').textContent = jobs.filter(j => j.status === 'Applied').length;
+    document.getElementById('chip-interview').textContent = jobs.filter(j => j.status === 'Interview').length;
+    document.getElementById('chip-accepted').textContent = jobs.filter(j => j.status === 'Accepted').length;
+    document.getElementById('chip-rejected').textContent = jobs.filter(j => j.status === 'Rejected').length;
+    document.getElementById('chip-draft').textContent = jobs.filter(j => j.status === 'Draft').length;
+  }
+
+  // ── Tracker ───────────────────────────────────────────────────────
+  function renderJobs() {
+    updateStats();
+    const list = document.getElementById('jobs-list');
+    if (jobs.length === 0) {
+      list.innerHTML = '<div class="empty-state">No applications yet. Tailor a CV to get started.</div>';
+      return;
+    }
+    list.innerHTML = jobs.map(job => {
+      const st = STATUS_STYLES[job.status];
+      return `<div class="job-row">
+        <div><div class="job-title-text">${job.title}</div><div class="job-co">${job.company}${job.tailored ? ' · AI tailored' : ''}</div></div>
+        <div style="font-size:13px;color:#8a8780">${job.date}</div>
+        <div><span class="status-pill" style="background:${st.bg};color:${st.color}">${job.status}</span></div>
+        <select onchange="updateStatus('${job.dbId || job.id}', this.value)">${['Draft','Applied','Interview','Accepted','Rejected'].map(s => `<option value="${s}"${s===job.status?' selected':''}>${s}</option>`).join('')}</select>
+        <button class="reject-btn" onclick="updateStatus('${job.dbId || job.id}', 'Rejected')" style="background:transparent;border:1px solid #e8e6e1;color:#c0392b;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Epilogue',sans-serif;transition:all 0.2s;">✕ Reject</button>
+        <button class="del-btn" onclick="deleteJob('${job.dbId || job.id}')">Remove</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function updateStatus(id, status) {
+    jobs = jobs.map(j => (j.dbId === id || j.id === id) ? {...j, status} : j);
+    renderJobs();
+    await updateApplicationInSupabase(id, status);
+  }
+
+  async function deleteJob(id) {
+    jobs = jobs.filter(j => j.dbId !== id && j.id !== id);
+    renderJobs();
+    await deleteApplicationFromSupabase(id);
+  }
+
+  // ── CV Upload ─────────────────────────────────────────────────────
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    cvFileName = file.name;
+    if (file.name.endsWith('.docx')) {
+      const buf = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: buf });
+      cvData = result.value;
+    } else if (file.name.endsWith('.pdf')) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let text = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(' ') + '\n';
+      }
+      cvData = text;
+    } else {
+      cvData = await file.text();
+    }
+    document.getElementById('cv-text').value = cvData;
+    document.getElementById('upload-box').classList.add('has-file');
+    document.getElementById('upload-icon').textContent = '✓';
+    const ut = document.getElementById('upload-text');
+    ut.textContent = cvFileName;
+    ut.classList.add('has-file');
+    showCVPreview(cvData);
+    saveCVToSupabase(cvData, cvFileName); // background, don't await
+    const banner = document.getElementById('cv-added-banner');
+    if (banner) { banner.style.display = 'flex'; setTimeout(() => { banner.style.display = 'none'; }, 4000); }
+  }
+
+  function handleCVTextInput(value) {
+    cvData = value;
+    showCVPreview(value);
+    clearTimeout(window._cvSaveTimer);
+    window._cvSaveTimer = setTimeout(() => saveCVToSupabase(cvData, 'Pasted CV'), 1500);
+  }
+
+  function showCVPreview(text) {
+    const preview = document.getElementById('cv-paste-preview');
+    if (!preview) return;
+    if (!text || text.length < 20) { preview.style.display = 'none'; return; }
+    // Simple line-by-line formatting for preview
+    const lines = text.split('\n').filter(l => l.trim());
+    let html = lines.slice(0, 30).map((line, i) => {
+      line = line.trim();
+      if (line === line.toUpperCase() && line.length > 2 && line.length < 50 && /[A-Z]/.test(line)) {
+        return `<div style="font-weight:700;font-size:11px;letter-spacing:1.5px;color:#8a8780;margin:10px 0 4px;text-transform:uppercase">${line}</div>`;
+      } else if (i === 0) {
+        return `<div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;margin-bottom:4px">${line}</div>`;
+      } else if (/^[-•*]/.test(line)) {
+        return `<div style="padding-left:14px;color:#5a5855">• ${line.replace(/^[-•*]\s*/,'')}</div>`;
+      }
+      return `<p style="margin:2px 0;color:#5a5855">${line}</p>`;
+    }).join('');
+    if (lines.length > 30) html += `<p style="color:#b8b5ae;font-size:12px;margin-top:8px">...and ${lines.length - 30} more lines</p>`;
+    preview.innerHTML = html;
+    preview.style.display = 'block';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('job-desc').addEventListener('input', checkWarnings);
+    updateStats();
+    renderJobs();
+  });
+
+  // ── Format plain text into readable HTML ─────────────────────────
+  function formatCVText(text) {
+    if (!text) return '';
+    const lines = text.split('\n');
+    let html = '';
+    let inList = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) {
+        if (inList) { html += '</ul>'; inList = false; }
+        html += '<br>';
+        continue;
+      }
+      const isBullet = /^[-•*·▪►]/.test(line);
+      const isAllCaps = line === line.toUpperCase() && line.length > 2 && line.length < 60 && !/^\d/.test(line) && /[A-Z]/.test(line);
+      const isNameLine = i < 3 && line.length < 70 && !line.includes('@');
+
+      if (isBullet) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${line.replace(/^[-•*·▪►]\s*/, '')}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        if (isNameLine && i === 0) {
+          html += `<h1>${line}</h1>`;
+        } else if (isAllCaps) {
+          html += `<h2>${line}</h2>`;
+        } else if (line.length < 80 && !line.endsWith('.') && !line.includes(',') && i > 0) {
+          html += `<h3>${line}</h3>`;
+        } else {
+          html += `<p>${line}</p>`;
+        }
+      }
+    }
+    if (inList) html += '</ul>';
+    return html;
+  }
+
+  // ── Tailor ────────────────────────────────────────────────────────
+  function checkWarnings() {
+    document.getElementById('cv-warning').style.display = cvData ? 'none' : 'block';
+    document.getElementById('tailor-btn').disabled = !cvData || !document.getElementById('job-desc').value;
+  }
+
+  async function tailorCV() {
+    const jobDesc = document.getElementById('job-desc').value;
+    const jobTitle = document.getElementById('job-title').value;
+    const company = document.getElementById('job-company').value;
+    if (!cvData || !jobDesc) return;
+
+    document.getElementById('tailor-empty').style.display = 'none';
+    document.getElementById('tailor-loading').style.display = 'block';
+    document.getElementById('tailor-cv-output').style.display = 'none';
+    document.getElementById('tailor-cover-output').style.display = 'none';
+    document.getElementById('applied-action').style.display = 'none';
+    document.getElementById('tailor-btn').disabled = true;
+    document.getElementById('tailor-btn').textContent = 'Tailoring your CV...';
+
+    try {
+      const res = await fetch('/.netlify/functions/tailor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvData, jobDesc })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      tailoredCV = data.tailoredCV;
+      tailoredCover = data.tailoredCover;
+
+      document.getElementById('cv-output-text').innerHTML = formatCVText(tailoredCV);
+      document.getElementById('cover-output-text').innerHTML = formatCVText(tailoredCover);
+
+      if (jobTitle) {
+        const newJob = { title: jobTitle, company: company || 'Unknown', status: 'Draft', date: new Date().toISOString().split('T')[0], tailored: true };
+        const dbId = await saveApplicationToSupabase(newJob);
+        jobs.push({ ...newJob, id: dbId || nextId++, dbId });
+        updateStats();
+      }
+
+      // Save tailor history in background - don't await
+      if (currentUser) {
+        sb.from('tailor_history').insert({
+          user_id: currentUser.id,
+          job_title: jobTitle,
+          company: company || 'Unknown',
+          job_desc: jobDesc,
+          tailored_cv: tailoredCV,
+          cover_letter: tailoredCover
+        });
+      }
+
+      switchTab('cv');
+      document.getElementById('tailor-cv-output').style.display = 'block';
+      document.getElementById('applied-action').style.display = 'block';
+      document.getElementById('applied-confirm').style.display = 'none';
+      document.getElementById('mark-applied-btn').style.display = 'inline-block';
+      // Show the match to tailored CV button on jobs page
+      document.getElementById('match-tailored-btn').style.display = 'inline-block';
+
+    } catch (err) {
+      document.getElementById('tailor-empty').style.display = 'block';
+      document.getElementById('tailor-empty').textContent = '✕ ' + (err.message || 'Something went wrong. Please try again.');
+      console.error('Tailor error:', err);
+    }
+
+    document.getElementById('tailor-loading').style.display = 'none';
+    document.getElementById('tailor-btn').disabled = false;
+    document.getElementById('tailor-btn').textContent = 'Tailor my CV →';
+  }
+
+  async function markAsApplied() {
+    const jobTitle = document.getElementById('job-title').value.trim() || 'Untitled Role';
+    const company = document.getElementById('job-company').value.trim() || 'Unknown';
+    const existing = jobs.slice().reverse().find(j => j.title === jobTitle && j.company === company && j.status === 'Draft');
+    if (existing) {
+      jobs = jobs.map(j => j.id === existing.id ? {...j, status: 'Applied'} : j);
+      await updateApplicationInSupabase(existing.dbId || existing.id, 'Applied');
+    } else {
+      const newJob = { title: jobTitle, company, status: 'Applied', date: new Date().toISOString().split('T')[0], tailored: true };
+      const dbId = await saveApplicationToSupabase(newJob);
+      jobs.push({ ...newJob, id: dbId || nextId++, dbId });
+    }
+    updateStats();
+    document.getElementById('mark-applied-btn').style.display = 'none';
+    document.getElementById('applied-confirm').style.display = 'inline';
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tab-cv').classList.toggle('active', tab === 'cv');
+    document.getElementById('tab-cover').classList.toggle('active', tab === 'cover');
+    document.getElementById('tailor-cv-output').style.display = (tab === 'cv' && tailoredCV) ? 'block' : 'none';
+    document.getElementById('tailor-cover-output').style.display = (tab === 'cover' && tailoredCover) ? 'block' : 'none';
+    if (!tailoredCV) { document.getElementById('tailor-empty').style.display = 'block'; document.getElementById('tailor-empty').textContent = 'Your tailored CV will appear here.'; }
+  }
+
+  function copyText(type) {
+    const text = type === 'cv' ? tailoredCV : tailoredCover;
+    navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copy-' + type + '-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('success');
+    setTimeout(() => { btn.textContent = 'Copy to clipboard'; btn.classList.remove('success'); }, 2000);
+  }
+
+  updateStats();
+  renderJobs();
+
+  // ── Jobs board ────────────────────────────────────────────────────
+  async function searchFromTailored() {
+    if (!tailoredCV) {
+      document.getElementById('jobs-empty').style.display = 'block';
+      document.getElementById('jobs-empty').textContent = 'Please tailor your CV first on the AI Tailor page.';
+      return;
+    }
+    document.getElementById('jobs-loading').style.display = 'block';
+    document.getElementById('jobs-empty').style.display = 'none';
+    document.getElementById('jobs-grid').innerHTML = '';
+    try {
+      const res = await fetch('/.netlify/functions/extract-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvData: tailoredCV })
+      });
+      const data = await res.json();
+      const query = data.role || 'software developer';
+      document.getElementById('jobs-search').value = query;
+      await fetchJobs(query);
+    } catch(e) {
+      document.getElementById('jobs-loading').style.display = 'none';
+      document.getElementById('jobs-empty').style.display = 'block';
+      document.getElementById('jobs-empty').textContent = 'Error extracting role. Try searching manually.';
+    }
+  }
+
+  async function searchFromCV() {
+    if (!cvData) {
+      document.getElementById('jobs-empty').style.display = 'block';
+      document.getElementById('jobs-empty').textContent = 'Please upload your CV first on the My CV page.';
+      return;
+    }
+    document.getElementById('jobs-loading').style.display = 'block';
+    document.getElementById('jobs-empty').style.display = 'none';
+    document.getElementById('jobs-grid').innerHTML = '';
+    try {
+      const res = await fetch('/.netlify/functions/extract-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvData })
+      });
+      const data = await res.json();
+      const query = data.role || 'software developer';
+      document.getElementById('jobs-search').value = query;
+      await fetchJobs(query);
+    } catch(e) {
+      document.getElementById('jobs-loading').style.display = 'none';
+      document.getElementById('jobs-empty').style.display = 'block';
+      document.getElementById('jobs-empty').textContent = 'Error extracting role from CV. Try searching manually.';
+    }
+  }
+
+  async function searchJobs() {
+    const query = document.getElementById('jobs-search').value.trim();
+    if (!query) return;
+    document.getElementById('jobs-loading').style.display = 'block';
+    document.getElementById('jobs-empty').style.display = 'none';
+    document.getElementById('jobs-grid').innerHTML = '';
+    await fetchJobs(query);
+  }
+
+  async function fetchJobs(query) {
+    try {
+      const res = await fetch('/.netlify/functions/jobs?q=' + encodeURIComponent(query));
+      const data = await res.json();
+      document.getElementById('jobs-loading').style.display = 'none';
+      if (!data.results || data.results.length === 0) {
+        document.getElementById('jobs-empty').style.display = 'block';
+        document.getElementById('jobs-empty').textContent = 'No jobs found. Try a different search.';
+        return;
+      }
+      renderJobCards(data.results);
+    } catch(e) {
+      document.getElementById('jobs-loading').style.display = 'none';
+      document.getElementById('jobs-empty').style.display = 'block';
+      document.getElementById('jobs-empty').textContent = 'Error fetching jobs. Please try again.';
+    }
+  }
+
+  function renderJobCards(results) {
+    const grid = document.getElementById('jobs-grid');
+    grid.innerHTML = results.map(job => {
+      const salary = job.salary_min ? `£${Math.round(job.salary_min/1000)}k${job.salary_max ? ' – £' + Math.round(job.salary_max/1000) + 'k' : ''}` : 'Salary not listed';
+      const location = job.location?.display_name || 'Location not listed';
+      const desc = job.description ? job.description.substring(0, 160) + '...' : '';
+      return `<div class="job-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div class="job-card-title">${job.title}</div>
+          <span class="source-badge source-adzuna">Live</span>
+        </div>
+        <div class="job-card-company">${job.company?.display_name || 'Company not listed'}</div>
+        <div class="job-card-meta">
+          <span>📍 ${location}</span>
+          <span>💷 ${salary}</span>
+        </div>
+        <div class="job-card-desc">${desc}</div>
+        <div class="job-card-actions">
+          <a href="${job.redirect_url}" target="_blank" class="btn-primary" style="font-size:13px;padding:8px 16px;text-decoration:none;">View Job →</a>
+          <button class="btn-secondary" style="font-size:13px;padding:8px 16px;" onclick="addJobToTracker('${job.title.replace(/'/g,"\\'")}', '${(job.company?.display_name||'Unknown').replace(/'/g,"\\'")}')">+ Add to Tracker</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function addJobToTracker(title, company) {
+    const newJob = { title, company, status: 'Draft', date: new Date().toISOString().split('T')[0], tailored: false };
+    const dbId = await saveApplicationToSupabase(newJob);
+    jobs.push({ ...newJob, id: dbId || nextId++, dbId });
+    updateStats();
+    alert(`"${title}" added to your tracker!`);
+  }
+</script>
+</body>
+</html>
